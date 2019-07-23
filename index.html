@@ -187,12 +187,8 @@ function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
 		var colorsLabels = [];
 		for ( var i = 0; i < labels.length; i ++ ) {
 			var j = 0;
-			var newcolor = [Math.random(), Math.random(), Math.random()];
+			var newcolor = [Math.random()*0.9, Math.random()*0.9, Math.random()*0.9];
 			while(j < colorsLabels.length){
-				//To make sure that we won't get white color
-				if (_.isEqual(newcolor, [1,1,1])){
-					newcolor = [Math.random(), Math.random(), Math.random()];
-				}
 				//check if the new color is already in the colorslabels array
 				if (_.isEqual(newcolor, colorsLabels.slice(j,j+3))){
 					j = 0;
