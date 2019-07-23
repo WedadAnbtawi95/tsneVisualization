@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>t-SNE.js</title>
+  <meta charset="utf-8" />
+    <script type="text/javascript" charset="UTF-8" src="../js/three.js"></script>
+    <script type="text/javascript" charset="UTF-8" src="../js/TrackballControls.js"></script>
+	<script type="text/javascript"   src="../js/OrbitControls.js"></script> 
+    <script type="text/javascript" src="../js/Stats.js"></script>
+    <script type="text/javascript" src="../js/dat.gui.js"></script>
+    <script type="text/javascript" src="../js/util.js"></script>
+	<script type="text/javascript" src="../js/underscore.js"></script>
+ <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body onload="init()">
+  <div class="container">
+	<div class="panel">
+      <div id="control-panel" data-sr="enter left over 8s">
+	  	<div class="param">
+		<label for="param-perplexity">Database</label>
+		  <input type="file" id="filechoice" onchange="checkfile(this);"/>
+			<output></output>
+		</div>
+		<div class="param">
+          <label for="param-nsamples">Number of Samples</label>
+          <input id="param-nsamples" type="range" min="100" max="1000" value="500" step="100">
+          <output for="param-nsamples" id="param-nsample-value">500</output>
+        </div>
+        <div class="param">
+          <label for="param-perplexity">Perplexity</label>
+          <input id="param-perplexity" type="range" min="5" max="100" value="30" step="1">
+          <output for="param-perplexity" id="param-perplexity-value">30</output>
+        </div>
+        <div class="param">
+          <label for="param-earlyexag">Early Exaggeration</label>
+          <input id="param-earlyexag" type="range" min="1.1" max="10.0" value="2.1" step="0.1">
+          <output for="param-earlyexag" id="param-earlyexag-value">2.1</output>
+        </div>
+        <div class="param">
+          <label for="param-learningrate">Learning Rate</label>
+          <input id="param-learningrate" type="range" min="1" max="1000" value="80" step="1">
+          <output for="param-learningrate" id="param-learningrate-value">80</output>
+        </div>
+        <div class="param">
+          <label for="param-maxiter">Max Iterations</label>
+          <input id="param-maxiter" type="range" min="100" max="500" value="150" step="10">
+          <output for="param-maxiter" id="param-maxiter-value">150</output>
+        </div>
+        <div class="param">
+		  <label for="param-dim">Low Dimension</label>
+          <input type="checkbox" id="3dModel" checked style="width: 40%; display: inline-block">
+		  <output></output>
+        </div>
+		<div id="run-button" onclick="rundraw()">Run</div>
+      </div>
+      <div id="webgl-output"></div>
+    </div>
+  </div>
+
+  <!----------- SCRIPTS ------------>
+
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/tsne.min.js"></script>
+  <script>
+    'use strict';
+    var N_SAMPLES;
+	var worker;
+	var count = 0;
+	var myReq;
+	var nIter;
+	var fileuploaded = false;
+	var frameId;
+	var N_classes;
+    var SAMPLE_DATA;
+	var SAMPLE_LABELS;
+	var stats;
+	var lowdim;
+	var stars = [];
+	var firstRun;
+	var camera, scene, renderer, orbitControls, raycaster;
+	var mouse, INTERSECTED;
+	var points, clock, colors, embeddingSpace;
+	var drawCount;
+	var update = false;
+	function checkfile(sender) {
+	   var validExt = ".csv";
+	   var fileExt = sender.value;
+	   fileExt = fileExt.substring(fileExt.lastIndexOf('.'));
+	   if (validExt == fileExt) {
+				fileuploaded = true;
+				 return true;
+		}
+		else{
+			fileuploaded = false;
+			  alert("Invalid file selected, valid files are of " + validExt + " type.");
+			  return false;
+	   }
+	}
+	function getRandomColor() {
+		var letters = '012345'.split('');
+		var color = '#';        
+		color += letters[Math.round(Math.random() * 5)];
+		letters = '0123456789ABCDEF'.split('');
+		for (var i = 0; i < 5; i++) {
+			color += letters[Math.round(Math.random() * 15)];
+		}
+		return color;
+	} 
+	function render() {
+		orbitControls.update(clock.getDelta());
+		requestAnimationFrame(render);
+		if (( lowdim == 2)&&(drawCount == 1 )) {
+			points.geometry.attributes.position.needsUpdate = true; // required after the first render
+		}
+		renderer.render(scene, camera)
+	}
+    function init () {
+		firstRun = true;
+		update = true;
+		drawCount = 0;
+		clock = new THREE.Clock();
+		scene = new THREE.Scene();
+		var light = new THREE.DirectionalLight( 0xffffff, 1 );
+		light.position.set( 1, 1, 1 ).normalize();
+		scene.add( light );
+		embeddingSpace = document.getElementById('webgl-output');
+		camera = new THREE.PerspectiveCamera(75, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
+		camera.position.set( 0, 0, 2);
+		raycaster = new THREE.Raycaster();
+			// initialize object to perform world/screen calculations
+		mouse = new THREE.Vector2();
+		renderer = new THREE.WebGLRenderer();
+		renderer.setClearColor (0xffffff, 1);
+		renderer.setSize( embeddingSpace.clientWidth, embeddingSpace.clientWidth );
+		orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+		embeddingSpace.appendChild(renderer.domElement);
+		renderer.render(scene, camera);
+		var trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
+		render();
+
+    }
+function onDocumentMouseDown( event ) 
+{
+    event.preventDefault();
+	// update the mouse variable
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+	raycaster.setFromCamera(mouse, camera);
+	// find intersections
+	var geometry = points.geometry;
+	var attributes = geometry.attributes;
+	// create an array containing all objects in the scene with which the ray intersects
+	var intersects = raycaster.intersectObject( points, true );
+	// if there is one (or more) intersections
+	if ( intersects.length > 0 ) {
+		if ( INTERSECTED != intersects[ 0 ].index ) {
+				console.log("Hit @ " + attributes.label.array[ INTERSECTED ]);
+				INTERSECTED = intersects[ 0 ].index;
+		}
+
+	} else if ( INTERSECTED !== null ) {
+		INTERSECTED = null;
+
+	}
+}
+
+function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
+			function componentToHex(c) {
+			  var hex = c.toString(16);
+			  return hex.length == 1 ? "0" + hex : hex;
+			}
+
+			function rgbToHex(r, g, b) {
+			  return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+			}
+    function draw (num) {
+		Array.prototype.unique = function(){
+			return this.filter(function(value, index, self){
+				return self.indexOf(value) === index;
+			});
+		}
+
+      function _draw(SAMPLE_DATA, SAMPLE_LABELS) {
+        var sampleData = SAMPLE_DATA;
+        var sampleLabels = SAMPLE_LABELS;
+		var labels = sampleLabels.unique();
+		var colorsLabels = [];
+		for ( var i = 0; i < labels.length; i ++ ) {
+			var j = 0;
+			var newcolor = [Math.random(), Math.random(), Math.random()];
+			while(j < colorsLabels.length){
+				//To make sure that we won't get white color
+				if (_.isEqual(newcolor, [1,1,1])){
+					newcolor = [Math.random(), Math.random(), Math.random()];
+				}
+				//check if the new color is already in the colorslabels array
+				if (_.isEqual(newcolor, colorsLabels.slice(j,j+3))){
+					j = 0;
+					newcolor = [Math.random(), Math.random(), Math.random()];
+				}
+				else{
+					j = j+3;
+				}
+			}
+			colorsLabels = colorsLabels.concat(newcolor);
+		}	
+		var positions = [];
+		var info = [];
+		colors = [];
+		var color = new THREE.Color();
+		if (lowdim == 3){
+			var geometry = new THREE.BoxGeometry(0.04,0.04,0.04);
+			for ( var i = 0; i < num; i ++ ) {
+				var label = labels.indexOf(sampleLabels[i]);
+				var color = new THREE.Color(colorsLabels[label*3], colorsLabels[label*3+1], colorsLabels[label*3+2]);
+				var material = new THREE.MeshBasicMaterial({color:color});
+				var mesh = new THREE.Mesh( geometry, material );
+				mesh.position.x = Math.random()*(-2)+1;
+				mesh.position.y = Math.random()*(-2)+1;
+				mesh.position.z = Math.random()*(-2)+1;
+				stars.push(mesh);
+				scene.add(mesh);
+			}
+		}else{
+			//var starsGeometry = new THREE.Geometry();
+		    for (var i = 0; i < num; i++) {
+				var geometry = new THREE.BufferGeometry();
+				var positions = [];
+				var info = [];
+				colors = [];
+				var color = new THREE.Color();
+				for ( var i = 0; i < num; i ++ ) {
+					// positions
+					var x = 0;
+					var y = 0;
+					var z = 0;
+					positions.push(x,y,z);
+					// colors
+					info.push(sampleLabels[i]);
+					var label = labels.indexOf(sampleLabels[i]);
+					colors.push(colorsLabels[label*3], colorsLabels[label*3+1], colorsLabels[label*3+2]);
+				}
+				geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+				geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+				geometry.addAttribute( 'label', new THREE.Float32BufferAttribute( info, 1 ) );
+				geometry.computeBoundingSphere();
+				var texture = new THREE.TextureLoader().load( 'textures/circle.png' );
+				var material =  new THREE.PointsMaterial({
+									  size: 0.05,
+									  vertexColors: THREE.VertexColors,
+									  map: texture,
+									  transparent: true,
+									  depthWrite: false
+									});
+				points = new THREE.Points( geometry, material );
+				scene.add( points );
+				drawCount = 1;
+			  }
+			}
+			//var opt = {}
+			var perplexity = parseInt($('#param-perplexity').val());
+			var earlyExaggeration = parseFloat($('#param-earlyexag').val());
+			var epsilon = parseInt($('#param-learningrate').val());
+			var dim = lowdim; // dimensionality of the embedding (2 = default)
+			worker.postMessage({
+			  type: 'INPUT_DATA',
+			  data: sampleData
+			});
+			worker.postMessage({
+			type: 'RUN',
+				data: {
+					perplexity: perplexity,
+					earlyExaggeration: earlyExaggeration,
+					learningRate: epsilon,
+					nIter: nIter,
+					dim: dim
+				}
+			});
+		}
+		if(SAMPLE_DATA){
+			_draw(SAMPLE_DATA, SAMPLE_LABELS);
+		}else{
+			read();
+			function read() {
+					var fr = new FileReader();
+					fr.onload = function () {
+						document.getElementById('contents').textContent = this.result;
+					};
+					fr.readAsText(document.getElementById('filechoice').files[0]);
+					fr.onload = loadHandler;
+			};
+
+			function loadHandler(event) {
+			  var csv = event.target.result;
+			  processData(csv);
+			}
+
+			function processData(csv) {
+				var allTextLines = csv.split(/\r\n|\n/);
+				var lines = [];
+				var labels = [];
+				var sampledata= [];
+				for (var i=1; i<N_SAMPLES+1; i++) {
+					var row = allTextLines[i].split(',');
+					labels.push(row[0]);
+					sampledata.push(row.slice(1).map(function(item){ return parseInt(item, 10);}));
+				}
+				SAMPLE_DATA=sampledata;
+				SAMPLE_LABELS=labels;
+				_draw(SAMPLE_DATA, SAMPLE_LABELS);
+			} 
+		}
+      
+    }
+	function clearScene() {
+        var to_remove = [];
+		scene.traverse(function (child) {
+			to_remove.push(child);
+        });
+		for (var i = 0; i < to_remove.length; i++) {
+            scene.remove(to_remove[i]);
+        }
+    }
+	function drawUpdate(embedding) {
+		var newPos = [];
+		for ( var i = 0; i < embedding.length; i ++ ) {
+			// positions
+			var x = embedding[i][0];
+			var y = embedding[i][1];
+			var z = (lowdim == 3)? embedding[i][2] : 0;
+			newPos.push(x,y,z);
+			if (lowdim ==3){
+				stars[i].position.x = x;
+				stars[i].position.y = y;
+				stars[i].position.z = z;
+			}
+		}
+		if (lowdim == 2){
+			points.geometry.attributes.position = new THREE.Float32BufferAttribute(newPos, 3);
+		}
+        renderer.render(scene, camera);
+    };
+	function stopWorker() { 
+		worker.terminate();
+		worker = undefined;
+	}
+	function rundraw(){
+		if(fileuploaded && update){
+			if (firstRun == false){
+				stopWorker();
+			}
+			firstRun = false;
+			stars = [];
+			points = null;
+			worker = new Worker('../js/worker.js');
+			nIter = parseInt($('#param-maxiter').val());
+			clearScene();
+			count = 0;
+			N_SAMPLES = parseInt($('#param-nsamples').val());
+			var threeDModel = $('#3dModel').prop('checked');
+			lowdim = threeDModel ? 3 : 2;
+			worker.onmessage = function (e) {
+				var msg = e.data;
+				switch (msg.type) {
+				  case 'PROGRESS_STATUS':
+					$('#progress-status').text(msg.data);
+					break;
+				  case 'PROGRESS_ITER':
+					break;
+				  case 'PROGRESS_DATA':
+					drawCount++;
+					drawUpdate(msg.data);
+					break;
+				  case 'DONE':
+					drawCount++;
+					drawUpdate(msg.data);
+					break;
+				  default:
+				}
+			  }
+			draw(N_SAMPLES);
+			render();
+			  function render() {
+				orbitControls.update(clock.getDelta());
+				requestAnimationFrame(render);
+				if (( lowdim == 2)&&(drawCount == 1 )) {
+					points.geometry.attributes.position.needsUpdate = true; // required after the first render
+				}
+				renderer.render(scene, camera)
+			  }
+		}
+	}
+	$('#param-nsamples').bind('input', function () { $('#param-nsample-value').text($('#param-nsamples').val()); });
+    $('#param-perplexity').bind('input', function () { $('#param-perplexity-value').text($('#param-perplexity').val()); });
+    $('#param-earlyexag').bind('input', function () { $('#param-earlyexag-value').text($('#param-earlyexag').val()); });
+    $('#param-learningrate').bind('input', function () { $('#param-learningrate-value').text($('#param-learningrate').val()); });
+    $('#param-maxiter').bind('input', function () { $('#param-maxiter-value').text($('#param-maxiter').val()); });
+     
+  </script>
+
+  <script src="../js/scrollReveal.min.js"></script>
+  <script>
+    (function() {
+      window.sr= new scrollReveal({
+        reset: true,
+        mobile: true,
+        vFactor: 0.2
+      });
+    })();
+  </script>
+</body>
+</html>
+
