@@ -1,6 +1,6 @@
 'use strict';
 
-importScripts('js/tsne.min.js');
+importScripts('tsne.min.js');
 
 function isBusy () {
   postMessage({
