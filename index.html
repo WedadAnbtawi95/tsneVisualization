@@ -3,14 +3,14 @@
 <head>
   <title>t-SNE.js</title>
   <meta charset="utf-8" />
-    <script type="text/javascript" charset="UTF-8" src="../js/three.js"></script>
-    <script type="text/javascript" charset="UTF-8" src="../js/TrackballControls.js"></script>
-	<script type="text/javascript"   src="../js/OrbitControls.js"></script> 
-    <script type="text/javascript" src="../js/Stats.js"></script>
-    <script type="text/javascript" src="../js/dat.gui.js"></script>
-    <script type="text/javascript" src="../js/util.js"></script>
-	<script type="text/javascript" src="../js/underscore.js"></script>
- <link rel="stylesheet" href="../css/styles.css" />
+    <script type="text/javascript" charset="UTF-8" src="js/three.js"></script>
+    <script type="text/javascript" charset="UTF-8" src="js/TrackballControls.js"></script>
+	<script type="text/javascript"   src="js/OrbitControls.js"></script> 
+    <script type="text/javascript" src="js/Stats.js"></script>
+    <script type="text/javascript" src="js/dat.gui.js"></script>
+    <script type="text/javascript" src="js/util.js"></script>
+	<script type="text/javascript" src="js/underscore.js"></script>
+	<link rel="stylesheet" href="css/styles.css" />
 </head>
 <body onload="init()">
   <div class="container">
@@ -59,8 +59,8 @@
 
   <!----------- SCRIPTS ------------>
 
-  <script src="../js/jquery.min.js"></script>
-  <script src="../js/tsne.min.js"></script>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/tsne.min.js"></script>
   <script>
     'use strict';
     var N_SAMPLES;
@@ -352,7 +352,7 @@ function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
 			firstRun = false;
 			stars = [];
 			points = null;
-			worker = new Worker('../js/worker.js');
+			worker = new Worker('js/worker.js');
 			nIter = parseInt($('#param-maxiter').val());
 			clearScene();
 			count = 0;
@@ -398,7 +398,7 @@ function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
      
   </script>
 
-  <script src="../js/scrollReveal.min.js"></script>
+  <script src="js/scrollReveal.min.js"></script>
   <script>
     (function() {
       window.sr= new scrollReveal({
