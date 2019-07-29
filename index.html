@@ -192,7 +192,7 @@ function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
 				//check if the new color is already in the colorslabels array
 				if (_.isEqual(newcolor, colorsLabels.slice(j,j+3))){
 					j = 0;
-					newcolor = [Math.random(), Math.random(), Math.random()];
+					newcolor = [Math.random()*0.9, Math.random()*0.9, Math.random()*0.9];
 				}
 				else{
 					j = j+3;
