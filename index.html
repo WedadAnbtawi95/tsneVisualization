@@ -13,7 +13,10 @@
 	<link rel="stylesheet" href="css/styles.css" />
 </head>
 <body onload="init()">
-  <div class="container">
+<h1 class="l-middle">Interactive t-SNE</h1>
+<div class="container">
+<p style="text-align: left;"> You can upload your own data as csv file with the first column as is label and the rest of the columns as features. The label will be used as the color of the datapoint. You can change the view using the mouse or using the keys (x,y,z).</p>
+
 	<div class="panel">
       <div id="control-panel" data-sr="enter left over 8s">
 	  	<div class="param">
@@ -124,8 +127,8 @@
 		light.position.set( 1, 1, 1 ).normalize();
 		scene.add( light );
 		embeddingSpace = document.getElementById('webgl-output');
-		camera = new THREE.PerspectiveCamera(75, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
-		camera.position.set( 0, 0, 2);
+		camera = new THREE.PerspectiveCamera(100, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
+		camera.position.set( 0, 2, 0);
 		raycaster = new THREE.Raycaster();
 			// initialize object to perform world/screen calculations
 		mouse = new THREE.Vector2();
@@ -137,31 +140,39 @@
 		renderer.render(scene, camera);
 		var trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
 		render();
+		document.addEventListener("keydown", onDocumentKeyDown, false);
+		//document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+		function onDocumentKeyDown(event) {
+			var keyCode = event.which;
+			if (keyCode == 88) {
+				camera.position.set( 2, 0, 0);
+			} else if (keyCode == 89) {
+				camera.position.set( 0, 2, 0);
+			} else if (keyCode == 90) {
+				camera.position.set( 0, 0, 2);
+			} else if (keyCode == 79) {
+				camera.position.set( 1, 1, 1);
+			}
+		};
 
     }
 function onDocumentMouseDown( event ) 
 {
-    event.preventDefault();
-	// update the mouse variable
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	raycaster.setFromCamera(mouse, camera);
+    var mouse3D = new THREE.Vector2( event.clientX / embeddingSpace.clientWidth * 2 - 1,
+                                        -( event.clientY/ embeddingSpace.clientHeight) * 2 + 1);  
+	console.log(mouse3D);
+    mouse3D.sub( camera.position );                
+    mouse3D.normalize();
+	raycaster.setFromCamera( mouse3D, camera );
 	// find intersections
 	var geometry = points.geometry;
 	var attributes = geometry.attributes;
-	// create an array containing all objects in the scene with which the ray intersects
-	var intersects = raycaster.intersectObject( points, true );
-	// if there is one (or more) intersections
-	if ( intersects.length > 0 ) {
-		if ( INTERSECTED != intersects[ 0 ].index ) {
-				console.log("Hit @ " + attributes.label.array[ INTERSECTED ]);
-				INTERSECTED = intersects[ 0 ].index;
-		}
-
-	} else if ( INTERSECTED !== null ) {
-		INTERSECTED = null;
-
-	}
+    var intersects = raycaster.intersectObjects( points, true );
+        // Change color if hit block
+        if ( intersects.length > 0 ) {
+            console.log("Hit @ " + attributes.label.array[ INTERSECTED ]);
+			INTERSECTED = intersects[ 0 ].index;
+        }
 }
 
 function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
@@ -393,6 +404,65 @@ function toString(v) { return "[ " + v.x + ", " + v.y + ", " + v.z + " ]"; }
     $('#param-maxiter').bind('input', function () { $('#param-maxiter-value').text($('#param-maxiter').val()); });
      
   </script>
+  		<dt-appendix>
+		<style>
+		  dt-appendix {
+			display: block;
+			font-size: 14px;
+			line-height: 24px;
+			margin-bottom: 0;
+			border-top: 1px solid rgba(0,0,0,0.1);
+			color: rgba(0,0,0,0.5);
+			background: rgb(250, 250, 250);
+			padding-top: 36px;
+			padding-bottom: 60px;
+		  }
+		  dt-appendix h3 {
+			font-size: 16px;
+			font-weight: 500;
+			margin-top: 18px;
+			margin-bottom: 18px;
+			color: rgba(0,0,0,0.65);
+		  }
+		  dt-appendix .citation {
+			font-size: 11px;
+			line-height: 15px;
+			border-left: 1px solid rgba(0, 0, 0, 0.1);
+			padding-left: 18px;
+			border: 1px solid rgba(0,0,0,0.1);
+			background: rgba(0, 0, 0, 0.02);
+			padding: 10px 18px;
+			border-radius: 3px;
+			color: rgba(150, 150, 150, 1);
+			overflow: hidden;
+			margin-top: -12px;
+		  }
+		  dt-appendix .references {
+			font-size: 12px;
+			line-height: 20px;
+		  }
+		  dt-appendix a {
+			color: rgba(0, 0, 0, 0.6);
+		  }
+		  dt-appendix ol,
+		  dt-appendix ul {
+			padding-left: 24px;
+		  }
+		</style>
+		<dt-appendix>
+		  <h3>Acknowledgments</h3>
+		  <p>Authors: Wedad Anbtawi and Mohamed Nassar.
+		  <p>This work was made possible by the support of the <a href="https://aub.edu.lb">American University of Beirut</a>.</p>
+		</dt-appendix>
+		<div class="l-body">
+			<h3>References</h3>
+			<dt-bibliography>
+			<ol><li><b>Visualizing data using t-SNE</b>
+			  &ensp;<a href="http://www.jmlr.org/papers/volume9/vandermaaten08a/vandermaaten08a.pdf">[PDF]</a>
+			  <br>Maaten, L.v.d. and Hinton, G., 2008. Journal of Machine Learning Research, Vol 9(Nov), pp. 2579—2605. 
+			  </li></ol>
+		</dt-bibliography>
+		<style>
 
   <script src="js/scrollReveal.min.js"></script>
   <script>

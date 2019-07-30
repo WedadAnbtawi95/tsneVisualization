@@ -28,7 +28,8 @@ a:hover {
 .panel {
   display: flex;
   flex: 1;
-  padding: 20px;
+  padding: 100px;
+  border-style: groove;
 }
 
 #control-panel {
@@ -36,7 +37,7 @@ a:hover {
   display: flex;
   max-height: 450px;
   flex-direction: column;
-  padding-top: 100px;
+  padding-top: 20px;
 }
 
 #control-panel > .param {
