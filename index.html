@@ -76,7 +76,7 @@
     var fileuploaded = false;
     var frameId;
     var N_classes;
-    var SAMPLE_DATA;
+    var SAMPLE_DATA, SAMPLE_DETAILS;
     var SAMPLE_LABELS;
     var stats;
     var lowdim;
@@ -146,6 +146,7 @@
         var trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
         render();
         document.addEventListener("keydown", onDocumentKeyDown, false);
+
         function onDocumentKeyDown(event) {
             var keyCode = event.which;
             if (keyCode == 88) {
@@ -181,9 +182,10 @@
             });
         }
 
-        function _draw(SAMPLE_DATA, SAMPLE_LABELS) {
+        function _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS) {
             var sampleData = SAMPLE_DATA;
             var sampleLabels = SAMPLE_LABELS;
+			var sampleDetails = SAMPLE_DETAILS;
             var labels = sampleLabels.unique();
             var colorsLabels = [];
             for (var i = 0; i < labels.length; i++) {
@@ -214,7 +216,7 @@
                     mesh.position.x = Math.random() * (-2) + 1;
                     mesh.position.y = Math.random() * (-2) + 1;
                     mesh.position.z = Math.random() * (-2) + 1;
-                    mesh.userData.tooltipText = "uuid: " + mesh.uuid + " color: " + label + " x: " + mesh.position.x + " y: " + mesh.position.y + " z: " + mesh.position.z;
+                    mesh.userData.tooltipText = sampleDetails[i];
                     stars.push(mesh);
                     scene.add(mesh);
                 }
@@ -260,7 +262,6 @@
             var earlyExaggeration = parseFloat($('#param-earlyexag').val());
             var epsilon = parseInt($('#param-learningrate').val());
             var dim = lowdim; // dimensionality of the embedding (2 = default)
-            console.log(sampleData);
             worker.postMessage({
                 type: 'INPUT_DATA',
                 data: sampleData
@@ -301,16 +302,19 @@
                 var lines = [];
                 var labels = [];
                 var sampledata = [];
+				var details = [];
                 for (var i = 1; i < N_SAMPLES + 1; i++) {
                     var row = allTextLines[i].split(',');
                     labels.push(row[0]);
-                    sampledata.push(row.slice(1).map(function (item) {
+					details.push(row[0]);
+                    sampledata.push(row.slice(2).map(function (item) {
                         return parseInt(item, 10);
                     }));
                 }
+				SAMPLE_DETAILS = details;
                 SAMPLE_DATA = sampledata;
                 SAMPLE_LABELS = labels;
-                _draw(SAMPLE_DATA, SAMPLE_LABELS);
+                _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS);
             }
         }
 
@@ -339,6 +343,7 @@
                 stars[i].position.y = y;
                 stars[i].position.z = z;
             }
+			//console.log(stars[i]);
         }
         if (lowdim == 2) {
             points.geometry.attributes.position = new THREE.Float32BufferAttribute(newPos, 3);
