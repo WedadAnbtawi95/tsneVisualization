@@ -280,6 +280,7 @@
             var earlyExaggeration = parseFloat($('#param-earlyexag').val());
             var epsilon = parseInt($('#param-learningrate').val());
             var dim = lowdim; // dimensionality of the embedding (2 = default)
+            console.log(sampleData);
             worker.postMessage({
                 type: 'INPUT_DATA',
                 data: sampleData
