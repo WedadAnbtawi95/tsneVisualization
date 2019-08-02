@@ -146,8 +146,6 @@
         var trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
         render();
         document.addEventListener("keydown", onDocumentKeyDown, false);
-
-        //document.addEventListener( 'mousedown', onDocumentMouseDown, false );
         function onDocumentKeyDown(event) {
             var keyCode = event.which;
             if (keyCode == 88) {
@@ -161,24 +159,6 @@
             }
         };
 
-    }
-
-    function onDocumentMouseDown(event) {
-        var mouse3D = new THREE.Vector2(event.clientX / embeddingSpace.clientWidth * 2 - 1,
-            -(event.clientY / embeddingSpace.clientHeight) * 2 + 1);
-        console.log(mouse3D);
-        mouse3D.sub(camera.position);
-        mouse3D.normalize();
-        raycaster.setFromCamera(mouse3D, camera);
-        // find intersections
-        var geometry = points.geometry;
-        var attributes = geometry.attributes;
-        var intersects = raycaster.intersectObjects(points, true);
-        // Change color if hit block
-        if (intersects.length > 0) {
-            console.log("Hit @ " + attributes.label.array[INTERSECTED]);
-            INTERSECTED = intersects[0].index;
-        }
     }
 
     function toString(v) {
@@ -280,6 +260,7 @@
             var earlyExaggeration = parseFloat($('#param-earlyexag').val());
             var epsilon = parseInt($('#param-learningrate').val());
             var dim = lowdim; // dimensionality of the embedding (2 = default)
+            console.log(sampleData);
             worker.postMessage({
                 type: 'INPUT_DATA',
                 data: sampleData
