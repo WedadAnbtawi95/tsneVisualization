@@ -70,21 +70,18 @@
     'use strict';
     var N_SAMPLES;
     var worker;
-    var count = 0;
-    var myReq;
     var nIter;
     var fileuploaded = false;
     var frameId;
     var N_classes;
-    var SAMPLE_DATA, SAMPLE_DETAILS;
-    var SAMPLE_LABELS;
+    var SAMPLE_DATA, SAMPLE_DETAILS, SAMPLE_LABELS;
     var stats;
     var lowdim;
     var stars = [];
     var firstRun;
     var camera, scene, renderer, orbitControls, raycaster;
     var mouse, INTERSECTED;
-    var points, clock, colors, embeddingSpace;
+    var clock, colors, embeddingSpace;
     var drawCount;
     var update = false;
 
@@ -116,9 +113,6 @@
     function render() {
         orbitControls.update(clock.getDelta());
         requestAnimationFrame(render);
-        if ((lowdim == 2) && (drawCount == 1)) {
-            points.geometry.attributes.position.needsUpdate = true; // required after the first render
-        }
         renderer.render(scene, camera)
     }
 
@@ -133,7 +127,8 @@
         scene.add(light);
         embeddingSpace = document.getElementById('webgl-output');
         camera = new THREE.PerspectiveCamera(100, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
-        camera.position.set(0, 2, 0);
+        camera.position.set(0, 0, 2);
+		camera.lookAt(0,0,0);
         raycaster = new THREE.Raycaster();
         // initialize object to perform world/screen calculations
         mouse = new THREE.Vector2();
@@ -206,80 +201,44 @@
             var info = [];
             colors = [];
             var color = new THREE.Color();
-            if (lowdim == 3) {
-                var geometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
-                for (var i = 0; i < num; i++) {
-                    var label = labels.indexOf(sampleLabels[i]);
-                    var color = new THREE.Color(colorsLabels[label * 3], colorsLabels[label * 3 + 1], colorsLabels[label * 3 + 2]);
-                    var material = new THREE.MeshBasicMaterial({color: color});
-                    var mesh = new THREE.Mesh(geometry, material);
-                    mesh.position.x = Math.random() * (-2) + 1;
-                    mesh.position.y = Math.random() * (-2) + 1;
-                    mesh.position.z = Math.random() * (-2) + 1;
-                    mesh.userData.tooltipText = sampleDetails[i];
-                    stars.push(mesh);
-                    scene.add(mesh);
-                }
-            } else {
-                //var starsGeometry = new THREE.Geometry();
-                for (var i = 0; i < num; i++) {
-                    var geometry = new THREE.BufferGeometry();
-                    var positions = [];
-                    var info = [];
-                    colors = [];
-                    var color = new THREE.Color();
-                    for (var i = 0; i < num; i++) {
-                        // positions
-                        var x = 0;
-                        var y = 0;
-                        var z = 0;
-                        positions.push(x, y, z);
-                        // colors
-                        info.push(sampleLabels[i]);
-                        var label = labels.indexOf(sampleLabels[i]);
-                        colors.push(colorsLabels[label * 3], colorsLabels[label * 3 + 1], colorsLabels[label * 3 + 2]);
-                    }
-                    geometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                    geometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                    geometry.addAttribute('label', new THREE.Float32BufferAttribute(info, 1));
-                    geometry.computeBoundingSphere();
-                    var texture = new THREE.TextureLoader().load('textures/circle.png');
-                    var material = new THREE.PointsMaterial({
-                        size: 0.05,
-                        vertexColors: THREE.VertexColors,
-                        map: texture,
-                        transparent: true,
-                        depthWrite: false
-                    });
-                    points = new THREE.Points(geometry, material);
-                    scene.add(points);
-
-                    drawCount = 1;
-                }
-            }
-            //var opt = {}
             var perplexity = parseInt($('#param-perplexity').val());
             var earlyExaggeration = parseFloat($('#param-earlyexag').val());
             var epsilon = parseInt($('#param-learningrate').val());
-            var dim = lowdim; // dimensionality of the embedding (2 = default)
-            worker.postMessage({
-                type: 'INPUT_DATA',
-                data: sampleData
-            });
-            worker.postMessage({
-                type: 'RUN',
-                data: {
-                    perplexity: perplexity,
-                    earlyExaggeration: earlyExaggeration,
-                    learningRate: epsilon,
-                    nIter: nIter,
-                    dim: dim
-                }
-            });
+            var cubesGeometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+			var circlesGeometry = new THREE.CircleGeometry(0.03);
+            for (var i = 0; i < num; i++) {
+                var label = labels.indexOf(sampleLabels[i]);
+                var color = new THREE.Color(colorsLabels[label * 3], colorsLabels[label * 3 + 1], colorsLabels[label * 3 + 2]);
+                var material = new THREE.MeshBasicMaterial({color: color});
+                var mesh;
+				if (lowdim == 3)
+					mesh = new THREE.Mesh(cubesGeometry, material);
+				else 
+					mesh = new THREE.Mesh(circlesGeometry, material);
+                mesh.position.x = Math.random() * (-2) + 1;
+                mesh.position.y = Math.random() * (-2) + 1;
+                mesh.position.z = (lowdim == 3)? Math.random() * (-2) + 1 : 0;
+                mesh.userData.tooltipText = sampleDetails[i];
+                stars.push(mesh);
+                scene.add(mesh);
+            }
+			worker.postMessage({
+				type: 'INPUT_DATA',
+				data: sampleData
+			});
+			worker.postMessage({
+				type: 'RUN',
+				data: {
+					perplexity: perplexity,
+					earlyExaggeration: earlyExaggeration,
+					learningRate: epsilon,
+					nIter: nIter,
+				}
+			});
         }
 
         if (SAMPLE_DATA) {
-            _draw(SAMPLE_DATA, SAMPLE_LABELS);
+            _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS);
         } else {
             read();
 
@@ -338,15 +297,9 @@
             var y = embedding[i][1];
             var z = (lowdim == 3) ? embedding[i][2] : 0;
             newPos.push(x, y, z);
-            if (lowdim == 3) {
-                stars[i].position.x = x;
-                stars[i].position.y = y;
-                stars[i].position.z = z;
-            }
-			//console.log(stars[i]);
-        }
-        if (lowdim == 2) {
-            points.geometry.attributes.position = new THREE.Float32BufferAttribute(newPos, 3);
+            stars[i].position.x = x;
+            stars[i].position.y = y;
+            stars[i].position.z = z;
         }
         renderer.render(scene, camera);
     };
@@ -363,14 +316,17 @@
             }
             firstRun = false;
             stars = [];
-            points = null;
-            worker = new Worker('js/worker.js');
             nIter = parseInt($('#param-maxiter').val());
             clearScene();
-            count = 0;
             N_SAMPLES = parseInt($('#param-nsamples').val());
             var threeDModel = $('#3dModel').prop('checked');
             lowdim = threeDModel ? 3 : 2;
+			if(threeDModel){
+				worker = new Worker('js/worker3d.js');
+			}
+			else{
+				worker = new Worker('js/worker2d.js');
+			}
             worker.onmessage = function (e) {
                 var msg = e.data;
                 switch (msg.type) {
@@ -392,15 +348,6 @@
             }
             draw(N_SAMPLES);
             render();
-
-            function render() {
-                orbitControls.update(clock.getDelta());
-                requestAnimationFrame(render);
-                if ((lowdim == 2) && (drawCount == 1)) {
-                    points.geometry.attributes.position.needsUpdate = true; // required after the first render
-                }
-                renderer.render(scene, camera)
-            }
         }
     }
 
