@@ -269,8 +269,8 @@
                 for (var i = 1; i < N_SAMPLES + 1; i++) {
                     var row = allTextLines[i].split(',');
                     labels.push(row[0]);
-					details.push(row[0]);
-                    sampledata.push(row.slice(2).map(function (item) {
+		    details.push(row[0]);
+                    sampledata.push(row.slice(1).map(function (item) {
                         return parseInt(item, 10);
                     }));
                 }
