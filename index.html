@@ -10,6 +10,7 @@
     <script type="text/javascript" src="js/dat.gui.js"></script>
     <script type="text/javascript" src="js/util.js"></script>
     <script type="text/javascript" src="js/underscore.js"></script>
+	<script type="text/javascript" src="js/Trendy.js"></script>
     <link rel="stylesheet" href="css/styles.css"/>
 </head>
 <body onload="init()">
@@ -100,14 +101,17 @@
     }
 
     function getRandomColor() {
-        var letters = '012345'.split('');
-        var color = '#';
-        color += letters[Math.round(Math.random() * 5)];
-        letters = '0123456789ABCDEF'.split('');
-        for (var i = 0; i < 5; i++) {
-            color += letters[Math.round(Math.random() * 15)];
-        }
-        return color;
+		var r = Math.floor(Math.random() * 255);
+		var g = Math.floor(Math.random() * 255);
+		var b = Math.floor(Math.random() * 255);
+		var brightness = Trendy.brightness(r,g,b);
+		while (brightness < 123) {
+			r = Math.floor(Math.random() * 255);
+			g = Math.floor(Math.random() * 255);
+			b = Math.floor(Math.random() * 255);
+			brightness = Trendy.brightness(r,g,b);
+		}
+		return [r/255,g/255,b/255];
     }
 
     function render() {
@@ -185,12 +189,12 @@
             var colorsLabels = [];
             for (var i = 0; i < labels.length; i++) {
                 var j = 0;
-                var newcolor = [Math.random() * 0.9, Math.random() * 0.9, Math.random() * 0.9];
+                var newcolor = getRandomColor();
                 while (j < colorsLabels.length) {
                     //check if the new color is already in the colorslabels array
                     if (_.isEqual(newcolor, colorsLabels.slice(j, j + 3))) {
                         j = 0;
-                        newcolor = [Math.random() * 0.9, Math.random() * 0.9, Math.random() * 0.9];
+                        newcolor = getRandomColor();
                     } else {
                         j = j + 3;
                     }
@@ -279,15 +283,19 @@
 
     }
 
-    function clearScene() {
-        var to_remove = [];
-        scene.traverse(function (child) {
-            to_remove.push(child);
-        });
-        for (var i = 0; i < to_remove.length; i++) {
-            scene.remove(to_remove[i]);
-        }
-    }
+	function clearScene() {
+		var to_remove = [];
+
+		scene.traverse ( function( child ) {
+			if ( child instanceof THREE.Mesh && !child.userData.keepMe === true ) {
+				to_remove.push( child );
+			 }
+		} );
+
+		for ( var i = 0; i < to_remove.length; i++ ) {
+			scene.remove( to_remove[i] );
+		}
+	}
 
     function drawUpdate(embedding) {
         var newPos = [];
@@ -316,6 +324,7 @@
             }
             firstRun = false;
             stars = [];
+			SAMPLE_DATA = null;
             nIter = parseInt($('#param-maxiter').val());
             clearScene();
             N_SAMPLES = parseInt($('#param-nsamples').val());
