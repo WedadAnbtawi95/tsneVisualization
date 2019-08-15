@@ -12,6 +12,7 @@
     <script type="text/javascript" src="js/underscore.js"></script>
 	<script type="text/javascript" src="js/Trendy.js"></script>
     <link rel="stylesheet" href="css/styles.css"/>
+	<script src="http://code.jquery.com/jquery-git.js"></script>
 
 </head>
 <body onload="init()">
@@ -82,7 +83,7 @@
 				<label id="labels-number" for="labels">Number of labels (1-10):</label>
 				<input type="number" id="labels" name="labels"
 					   min="1" max="10">
-				<input id="button" type="button" value="Choose Colors"><br>
+				<input id="colorbutton" type="button" value="Choose Colors"><br>
 			<output></output>
 			</div>
 			<form id="colors" action="">
@@ -123,20 +124,26 @@
 	var shapelist2d = document.getElementById("selectShape2d");
 	    $(function () {
         	$("#labels").hide();
-			$("#button").hide();
+			$("#colorbutton").hide();
 			$("#labels-number").hide();
         //show it when the checkbox is clicked
         $('input[id="chooseColor"]').on('click', function () {
             if ($(this).prop('checked')) {
                 $("#labels").fadeIn();
-				$("#button").fadeIn();
+				$("#colorbutton").fadeIn();
 				$("#colors").fadeIn();
 				$("#labels-number").fadeIn();
             } else {
                 $("#labels").hide();
 				$("#colors").hide();
-				$("#button").hide();
+				$("#colorbutton").hide();
 				$("#labels-number").hide();
+				$("#labels").val('');
+				num_labels =  null;
+				var myNode = document.getElementById("colors");
+				while (myNode.firstChild) {
+					myNode.removeChild(myNode.firstChild);
+				}
             }
         });
     });
@@ -153,21 +160,24 @@
         });
     });
 	(function() {
-	  var counter = 0;
-	  var btn = document.getElementById('button');
-	  var form = document.getElementById('colors');
-	  var addInput = function() {
-		num_labels = $("#labels").val();
-		var i = 1;
-		while(i<=num_labels){
-			var input = document.createElement("input");
-			input.id = 'color-' + i;
-			input.type = 'color';
-			form.appendChild(input);
-			i++;
-		}
-	  };
-	  btn.addEventListener('click', function() {
+		var counter = 0;
+		var btn = document.getElementById('colorbutton');
+		var addInput = function() {
+			var form = document.getElementById('colors');
+			while (form.firstChild) {
+				form.removeChild(form.firstChild);
+			}
+			num_labels = $("#labels").val();
+			var i = 1;
+			while(i<=num_labels){
+				var input = document.createElement("input");
+				input.id = 'color-' + i;
+				input.type = 'color';
+				form.appendChild(input);
+				i++;
+			}
+		};
+		btn.addEventListener('click', function() {
 		addInput();
 	  }.bind(this));
 	})();
@@ -185,7 +195,6 @@
             return false;
         }
     }
-
     function getRandomColor() {
 		var r = Math.floor(Math.random() * 255);
 		var g = Math.floor(Math.random() * 255);
@@ -244,13 +253,8 @@
                 camera.position.set(1, 1, 1);
             }
         };
-
     }
-
-    function toString(v) {
-        return "[ " + v.x + ", " + v.y + ", " + v.z + " ]";
-    }
-
+	
     function hexToRgb(hex) {
 	  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	  return result ? {
@@ -258,6 +262,23 @@
 		g: parseInt(result[2], 16),
 		b: parseInt(result[3], 16)
 	  } : null;
+	}
+	function chooseColorsRandomly(num, colorslist){
+		for (var i = 0; i < num; i++) {
+			var j = 0;			
+			var newcolor = getRandomColor();
+			while (j < colorslist.length) {
+				//check if the new color is already in the colorslabels array
+				if (_.isEqual(newcolor, colorslist.slice(j, j + 3))) {
+					j = 0;
+					newcolor = getRandomColor();
+				} else {
+					j = j + 3;
+				}
+			}
+			colorslist = colorslist.concat(newcolor);
+		}
+		return colorslist;
 	}
     function draw(num) {
         Array.prototype.unique = function () {
@@ -277,36 +298,10 @@
 					var color = $('#color-' + i).val();
 					colorsLabels = colorsLabels.concat([hexToRgb(color).r/255,hexToRgb(color).g/255,hexToRgb(color).b/255]);
 				}	
-			}else{	
-				for (var i = 0; i < labels.length; i++) {
-					var j = 0;			
-					var newcolor = getRandomColor();
-					while (j < colorsLabels.length) {
-						//check if the new color is already in the colorslabels array
-						if (_.isEqual(newcolor, colorsLabels.slice(j, j + 3))) {
-							j = 0;
-							newcolor = getRandomColor();
-						} else {
-							j = j + 3;
-						}
-					}
-					colorsLabels = colorsLabels.concat(newcolor);
-				}
-            }	
-            for (var i = 0; i < labels.length; i++) {
-                var j = 0;
-                var newcolor = getRandomColor();
-                while (j < colorsLabels.length) {
-                    //check if the new color is already in the colorslabels array
-                    if (_.isEqual(newcolor, colorsLabels.slice(j, j + 3))) {
-                        j = 0;
-                        newcolor = getRandomColor();
-                    } else {
-                        j = j + 3;
-                    }
-                }
-                colorsLabels = colorsLabels.concat(newcolor);
-            }
+			}else{
+				num_labels = 0;
+			}	
+			colorsLabels = chooseColorsRandomly(labels.length - num_labels, colorsLabels);	
             var info = [];
             colors = [];
             var color = new THREE.Color();
@@ -395,7 +390,6 @@
                 _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS);
             }
         }
-
     }
 
 	function clearScene() {
@@ -431,7 +425,9 @@
     }
 
     function rundraw() {
-        if (fileuploaded && update) {
+		if (!fileuploaded){
+			alert('Kindly update a dataset');
+		}else if(update) {
             if (firstRun == false) {
                 stopWorker();
             }
@@ -527,11 +523,6 @@
                 left: `${tooltipPosition.x - tootipWidth / 2}px`,
                 top: `${tooltipPosition.y - tootipHeight - 5}px`
             });
-
-            // var position = new THREE.Vector3();
-            // var quaternion = new THREE.Quaternion();
-            // var scale = new THREE.Vector3();
-            // hoveredObj.matrix.decompose(position, quaternion, scale);
             divElement.text(hoveredObj.userData.tooltipText);
 
             setTimeout(function () {
