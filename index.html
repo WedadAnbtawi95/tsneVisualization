@@ -293,7 +293,11 @@
 			var sampleDetails = SAMPLE_DETAILS;
             var labels = sampleLabels.unique();
             var colorsLabels = [];
+			var realNumLabels = labels.length;
 			if(num_labels){
+				if(num_labels > realNumLabels){
+					num_labels = realNumLabels;
+				}
 				for (var i = 1; i <= num_labels; i++) {
 					var color = $('#color-' + i).val();
 					colorsLabels = colorsLabels.concat([hexToRgb(color).r/255,hexToRgb(color).g/255,hexToRgb(color).b/255]);
@@ -301,7 +305,7 @@
 			}else{
 				num_labels = 0;
 			}	
-			colorsLabels = chooseColorsRandomly(labels.length - num_labels, colorsLabels);	
+			colorsLabels = chooseColorsRandomly(realNumLabels - num_labels, colorsLabels);	
             var info = [];
             colors = [];
             var color = new THREE.Color();
