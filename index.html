@@ -12,6 +12,8 @@
     <script type="text/javascript" src="js/underscore.js"></script>
 	<script type="text/javascript" src="js/Trendy.js"></script>
     <link rel="stylesheet" href="css/styles.css"/>
+	<script src="http://code.jquery.com/jquery-git.js"></script>
+
 </head>
 <body onload="init()">
 <h1 class="l-middle">Interactive t-SNE</h1>
@@ -52,7 +54,27 @@
                 <input id="param-maxiter" type="range" min="100" max="1000" value="150" step="10">
                 <output for="param-maxiter" id="param-maxiter-value">150</output>
             </div>
-			 <div class="param">
+            <div class="param">
+                <label for="param-dim">3D Dimension</label>
+                <input type="checkbox" id="3dModel" checked style="width: 40%; display: inline-block">
+                <output></output>
+            </div>
+			<div class="param">
+				<label for="param-shape">Select the shape to visualize</label>
+					<div class="selectWrapper">
+					    <select id="selectShape3d">
+						  <option value='cube'>Cube</option>
+						  <option value='sphere'>Sphere</option>
+						  <option value='tetrahedron'>Tetrahedron</option>
+						</select>
+						<select id="selectShape2d">
+						  <option value='circle'>Circle</option>
+						  <option value='square'>Square</option>
+						</select>
+					</div>
+				<output></output>
+			</div>
+			<div class="param">
                 <label for="param-dim">Do you want to choose the colors for the labels?</label>
                 <input type="checkbox" id="chooseColor" style="width: 40%; display: inline-block">
                 <output></output>
@@ -66,12 +88,10 @@
 			</div>
 			<form id="colors" action="">
 			</form>
-            <div class="param">
-                <label for="param-dim">3D Dimension</label>
-                <input type="checkbox" id="3dModel" checked style="width: 40%; display: inline-block">
-                <output></output>
-            </div>
             <div id="run-button" onclick="rundraw()">Run</div>
+			<div class="progress">
+			  <span class="show" id="percentage">Press Run To Start</span>
+			</div>
         </div>
         <div id="webgl-output"></div>
     </div>
@@ -84,6 +104,7 @@
 <script>
     'use strict';
     var N_SAMPLES;
+	var shape;
     var worker;
     var nIter;
     var fileuploaded = false;
@@ -99,6 +120,8 @@
     var clock, colors, embeddingSpace;
     var update = false;
 	var num_labels;
+	var shapelist3d = document.getElementById("selectShape3d");
+	var shapelist2d = document.getElementById("selectShape2d");
 	    $(function () {
         	$("#labels").hide();
 			$("#button").hide();
@@ -108,11 +131,25 @@
             if ($(this).prop('checked')) {
                 $("#labels").fadeIn();
 				$("#button").fadeIn();
+				$("#colors").fadeIn();
 				$("#labels-number").fadeIn();
             } else {
                 $("#labels").hide();
+				$("#colors").hide();
 				$("#button").hide();
 				$("#labels-number").hide();
+            }
+        });
+    });
+	$(function () {
+        //show it when the checkbox is clicked
+        $('input[id="3dModel"]').on('click', function () {
+            if ($(this).prop('checked')) {
+                $("#selectShape3d").show();
+				$("#selectShape2d").hide();
+            } else {
+                $("#selectShape3d").hide();
+				$("#selectShape2d").show();
             }
         });
     });
@@ -122,9 +159,6 @@
 	  var form = document.getElementById('colors');
 	  var addInput = function() {
 		num_labels = $("#labels").val();
-		$("#labels").hide();
-		$("#button").hide();
-		$("#labels-number").hide();
 		var i = 1;
 		while(i<=num_labels){
 			var input = document.createElement("input");
@@ -174,6 +208,7 @@
     }
 
     function init() {
+		$("#selectShape2d").hide();
         firstRun = true;
         update = true;
         clock = new THREE.Clock();
@@ -279,17 +314,27 @@
             var perplexity = parseInt($('#param-perplexity').val());
             var earlyExaggeration = parseFloat($('#param-earlyexag').val());
             var epsilon = parseInt($('#param-learningrate').val());
-            var cubesGeometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
-			var circlesGeometry = new THREE.CircleGeometry(0.03);
+			var geometry;
+			if (lowdim == 3){
+				if(shape == 'cube'){
+					geometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+				}else if(shape == 'sphere'){
+					geometry = new THREE.SphereGeometry(0.04, 0.04, 0.04);
+				}else{
+					geometry = new THREE.TetrahedronGeometry(0.04, 0);
+				}
+			}else{
+				if(shape == 'circle'){
+					geometry = new THREE.CircleGeometry(0.03);
+				}else{
+					geometry = new THREE.PlaneGeometry(0.04, 0.04, 0.04);
+				}
+			}
             for (var i = 0; i < num; i++) {
                 var label = labels.indexOf(sampleLabels[i]);
                 var color = new THREE.Color(colorsLabels[label * 3], colorsLabels[label * 3 + 1], colorsLabels[label * 3 + 2]);
                 var material = new THREE.MeshBasicMaterial({color: color});
-                var mesh;
-				if (lowdim == 3)
-					mesh = new THREE.Mesh(cubesGeometry, material);
-				else 
-					mesh = new THREE.Mesh(circlesGeometry, material);
+                var mesh = new THREE.Mesh(geometry, material);
                 mesh.position.x = Math.random() * (-2) + 1;
                 mesh.position.y = Math.random() * (-2) + 1;
                 mesh.position.z = (lowdim == 3)? Math.random() * (-2) + 1 : 0;
@@ -399,6 +444,7 @@
             N_SAMPLES = parseInt($('#param-nsamples').val());
             var threeDModel = $('#3dModel').prop('checked');
             lowdim = threeDModel ? 3 : 2;
+			shape = threeDModel ? shapelist3d.options[shapelist3d.selectedIndex].value : shapelist2d.options[shapelist2d.selectedIndex].value;
 			if(threeDModel){
 				worker = new Worker('js/worker3d.js');
 			}
@@ -412,13 +458,15 @@
                         $('#progress-status').text(msg.data);
                         break;
 					case 'PROGRESS_ITER':
-						console.log(msg.data[0] + 1);
+						var percentage = ((msg.data[0] + 1)/nIter*100);
+						document.getElementById("percentage").innerHTML = (msg.data[0] + 1)+' out of '+nIter+' iterations';
 						break;
                     case 'PROGRESS_DATA':
                         drawUpdate(msg.data);
                         break;
                     case 'DONE':
                         drawUpdate(msg.data);
+						document.getElementById("percentage").innerHTML = 'Done!';
                         break;
                     default:
                 }
