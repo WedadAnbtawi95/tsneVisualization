@@ -437,10 +437,8 @@
 			alert('Kindly update a dataset');
 		}else if(update) {
 		    var threeDModel = $('#3dModel').prop('checked');
-			var newdim = threeDModel ? 3 : 2;
             if (firstRun == false) {
-                if (newdim != lowdim)
-					stopWorker();
+                stopWorker();
             }
             firstRun = false;
             stars = [];
@@ -448,7 +446,7 @@
             nIter = parseInt($('#param-maxiter').val());
             clearScene();
             N_SAMPLES = parseInt($('#param-nsamples').val());
-            lowdim = newdim;
+            lowdim = threeDModel ? 3 : 2;;
 			shape = threeDModel ? shapelist3d.options[shapelist3d.selectedIndex].value : shapelist2d.options[shapelist2d.selectedIndex].value;
 			if(threeDModel){
 				worker = new Worker('js/worker3d.js');
