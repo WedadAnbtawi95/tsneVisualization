@@ -12,6 +12,7 @@
     <script type="text/javascript" src="js/underscore.js"></script>
 	<script type="text/javascript" src="js/Trendy.js"></script>
     <link rel="stylesheet" href="css/styles.css"/>
+	<script src="http://code.jquery.com/jquery-git.js"></script>
 
 </head>
 <body onload="init()">
@@ -379,13 +380,17 @@
                 var labels = [];
                 var sampledata = [];
 				var details = [];
+				//To make sure the user didn't choose more than the file contains
+				if (N_SAMPLES > allTextLines.length - 2){
+					N_SAMPLES = allTextLines.length - 2;
+				}
                 for (var i = 1; i < N_SAMPLES + 1; i++) {
                     var row = allTextLines[i].split(',');
-                    labels.push(row[0]);
+					labels.push(row[0]);
 					details.push(row[0]);
-                    sampledata.push(row.slice(2).map(function (item) {
-                        return parseInt(item, 10);
-                    }));
+					sampledata.push(row.slice(2).map(function (item) {
+						return parseInt(item, 10);
+					}));
                 }
 				SAMPLE_DETAILS = details;
                 SAMPLE_DATA = sampledata;
@@ -431,8 +436,11 @@
 		if (!fileuploaded){
 			alert('Kindly update a dataset');
 		}else if(update) {
+		    var threeDModel = $('#3dModel').prop('checked');
+			var newdim = threeDModel ? 3 : 2;
             if (firstRun == false) {
-                stopWorker();
+                if (newdim != lowdim)
+					stopWorker();
             }
             firstRun = false;
             stars = [];
@@ -440,8 +448,7 @@
             nIter = parseInt($('#param-maxiter').val());
             clearScene();
             N_SAMPLES = parseInt($('#param-nsamples').val());
-            var threeDModel = $('#3dModel').prop('checked');
-            lowdim = threeDModel ? 3 : 2;
+            lowdim = newdim;
 			shape = threeDModel ? shapelist3d.options[shapelist3d.selectedIndex].value : shapelist2d.options[shapelist2d.selectedIndex].value;
 			if(threeDModel){
 				worker = new Worker('js/worker3d.js');
