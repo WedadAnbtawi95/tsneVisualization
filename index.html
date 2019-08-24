@@ -389,7 +389,7 @@
 					labels.push(row[0]);
 					details.push(row[0]);
 					sampledata.push(row.slice(2).map(function (item) {
-						return parseInt(item, 10);
+						return parseFloat(item);
 					}));
                 }
 				SAMPLE_DETAILS = details;
