@@ -9,10 +9,10 @@
     <script type="text/javascript" src="js/Stats.js"></script>
     <script type="text/javascript" src="js/dat.gui.js"></script>
     <script type="text/javascript" src="js/util.js"></script>
+	        <script src="js/d3.min.js"></script>
     <script type="text/javascript" src="js/underscore.js"></script>
 	<script type="text/javascript" src="js/Trendy.js"></script>
     <link rel="stylesheet" href="css/styles.css"/>
-	<script src="http://code.jquery.com/jquery-git.js"></script>
 
 </head>
 <body onload="init()">
@@ -225,8 +225,8 @@
         light.position.set(1, 1, 1).normalize();
         scene.add(light);
         embeddingSpace = document.getElementById('webgl-output');
-        camera = new THREE.PerspectiveCamera(100, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
-        camera.position.set(0, 0, 2);
+        camera = new THREE.PerspectiveCamera(70, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
+        camera.position.set(0, 0, 4);
 		camera.lookAt(0,0,0);
         raycaster = new THREE.Raycaster();
         // initialize object to perform world/screen calculations
@@ -415,11 +415,32 @@
 	}
 
     function drawUpdate(embedding) {
-        for (var i = 0; i < embedding.length; i++) {
-            // positions
-            var x = embedding[i][0];
-            var y = embedding[i][1];
-            var z = (lowdim == 3) ? embedding[i][2] : 0;
+		var xcolumn = embedding.map(function(value,index) { return value[0]; });
+		var xmin = d3.min(xcolumn);
+		var xmax = d3.max(xcolumn);
+		var ycolumn = embedding.map(function(value,index) { return value[1]; });
+		var ymin = d3.min(ycolumn);
+		var ymax = d3.max(ycolumn);
+		var linearScaleZ;
+		if (lowdim == 3){
+			var zcolumn = embedding.map(function(value,index) { return value[2]; });
+			var zmin = d3.min(zcolumn);
+			var zmax = d3.max(zcolumn);
+			linearScaleZ = d3.scaleLinear()
+			.domain([zmin, zmax])
+			.range([-2, 2]);
+		}
+		const linearScaleX = d3.scaleLinear()
+		.domain([xmin, xmax])
+		.range([-2, 2]);
+		const linearScaleY = d3.scaleLinear()
+		.domain([ymin, ymax])
+		.range([-2, 2]);
+		for (var i = 0; i < embedding.length; i++) {
+			// positions
+			var x = linearScaleX(embedding[i][0]);
+			var y = linearScaleY(embedding[i][1]);
+            var z = (lowdim == 3) ? linearScaleZ(embedding[i][2]) : 0;
             stars[i].position.x = x;
             stars[i].position.y = y;
             stars[i].position.z = z;
@@ -437,8 +458,10 @@
 			alert('Kindly update a dataset');
 		}else if(update) {
 		    var threeDModel = $('#3dModel').prop('checked');
+			var newdim = threeDModel ? 3 : 2;
             if (firstRun == false) {
-                stopWorker();
+                if (newdim != lowdim)
+					stopWorker();
             }
             firstRun = false;
             stars = [];
@@ -446,7 +469,7 @@
             nIter = parseInt($('#param-maxiter').val());
             clearScene();
             N_SAMPLES = parseInt($('#param-nsamples').val());
-            lowdim = threeDModel ? 3 : 2;;
+            lowdim = newdim;
 			shape = threeDModel ? shapelist3d.options[shapelist3d.selectedIndex].value : shapelist2d.options[shapelist2d.selectedIndex].value;
 			if(threeDModel){
 				worker = new Worker('js/worker3d.js');
