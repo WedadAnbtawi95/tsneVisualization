@@ -29,6 +29,22 @@
                 <input type="file" id="filechoice" onchange="checkfile(this);"/>
                 <output></output>
             </div>
+			<div class="param">
+				<label for="param-mode">Select the explanation mode:</label>
+					<div class="selectWrapper">
+					    <select id="selectMode">
+						  <option value='none'>None</option>
+						  <option value='text'>Text</option>
+						  <option value='image'>Image</option>
+						</select>
+					</div>
+				<output></output>
+			</div>
+			<div class="param">
+                <label for="param-perplexity">Kindly upload the explanation file:</label>
+                <input type="file" id="modefilechoice" onchange="checkmodefile(this);"/>
+                <output></output>
+            </div>
             <div class="param">
                 <label for="param-nsamples">Number of Samples</label>
                 <input id="param-nsamples" type="range" min="100" max="2000" value="500" step="100">
@@ -105,9 +121,11 @@
     'use strict';
     var N_SAMPLES;
 	var shape;
+	var mode;
     var worker;
     var nIter;
     var fileuploaded = false;
+	var modefileuploaded = false;
     var frameId;
     var N_classes;
     var SAMPLE_DATA, SAMPLE_DETAILS, SAMPLE_LABELS;
@@ -120,6 +138,7 @@
     var clock, colors, embeddingSpace;
     var update = false;
 	var num_labels;
+	var modeSelected = document.getElementById("selectMode");
 	var shapelist3d = document.getElementById("selectShape3d");
 	var shapelist2d = document.getElementById("selectShape2d");
 	    $(function () {
@@ -195,6 +214,19 @@
             return false;
         }
     }
+	function checkmodefile(sender) {
+        var validExt = ".csv";
+        var fileExt = sender.value;
+        fileExt = fileExt.substring(fileExt.lastIndexOf('.'));
+        if (validExt == fileExt) {
+            modefileuploaded = true;
+            return true;
+        } else {
+            modefileuploaded = false;
+            alert("Invalid file selected, valid files are of " + validExt + " type.");
+            return false;
+        }
+    }
     function getRandomColor() {
 		var r = Math.floor(Math.random() * 255);
 		var g = Math.floor(Math.random() * 255);
@@ -225,7 +257,7 @@
         light.position.set(1, 1, 1).normalize();
         scene.add(light);
         embeddingSpace = document.getElementById('webgl-output');
-        camera = new THREE.PerspectiveCamera(100, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
+        camera = new THREE.PerspectiveCamera(70, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
         camera.position.set(0, 0, 4);
 		camera.lookAt(0,0,0);
         raycaster = new THREE.Raycaster();
@@ -244,11 +276,11 @@
         function onDocumentKeyDown(event) {
             var keyCode = event.which;
             if (keyCode == 88) {
-                camera.position.set(4, 0, 0);
+                camera.position.set(2, 0, 0);
             } else if (keyCode == 89) {
-                camera.position.set(0, 4, 0);
+                camera.position.set(0, 2, 0);
             } else if (keyCode == 90) {
-                camera.position.set(0, 0, 4);
+                camera.position.set(0, 0, 2);
             } else if (keyCode == 79) {
                 camera.position.set(1, 1, 1);
             }
@@ -286,11 +318,12 @@
                 return self.indexOf(value) === index;
             });
         }
-
-        function _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS) {
+		function _details(SAMPLE_DETAILS) {
+			SAMPLE_DETAILS = SAMPLE_DETAILS;
+		}	
+        function _draw(SAMPLE_DATA, SAMPLE_LABELS) {
             var sampleData = SAMPLE_DATA;
             var sampleLabels = SAMPLE_LABELS;
-			var sampleDetails = SAMPLE_DETAILS;
             var labels = sampleLabels.unique();
             var colorsLabels = [];
 			var realNumLabels = labels.length;
@@ -336,7 +369,7 @@
                 mesh.position.x = Math.random() * (-2) + 1;
                 mesh.position.y = Math.random() * (-2) + 1;
                 mesh.position.z = (lowdim == 3)? Math.random() * (-2) + 1 : 0;
-                mesh.userData.tooltipText = sampleDetails[i];
+                mesh.userData.tooltipText = i;
                 stars.push(mesh);
                 scene.add(mesh);
             }
@@ -356,7 +389,7 @@
         }
 
         if (SAMPLE_DATA) {
-            _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS);
+            _draw(SAMPLE_DATA, SAMPLE_LABELS);
         } else {
             read();
 
@@ -379,7 +412,6 @@
                 var lines = [];
                 var labels = [];
                 var sampledata = [];
-				var details = [];
 				//To make sure the user didn't choose more than the file contains
 				if (N_SAMPLES > allTextLines.length - 2){
 					N_SAMPLES = allTextLines.length - 2;
@@ -387,16 +419,52 @@
                 for (var i = 1; i < N_SAMPLES + 1; i++) {
                     var row = allTextLines[i].split(',');
 					labels.push(row[0]);
-					details.push(row[0]);
 					sampledata.push(row.slice(1).map(function (item) {
 						return parseFloat(item);
 					}));
                 }
-				SAMPLE_DETAILS = details;
                 SAMPLE_DATA = sampledata;
                 SAMPLE_LABELS = labels;
-                _draw(SAMPLE_DATA, SAMPLE_LABELS, SAMPLE_DETAILS);
+                _draw(SAMPLE_DATA, SAMPLE_LABELS);
             }
+			if(modefileuploaded){
+				readmodeFile();
+				function readmodeFile() {
+					var fr = new FileReader();
+					fr.onload = function () {
+						document.getElementById('contents').textContent = this.result;
+					};
+					fr.readAsText(document.getElementById('modefilechoice').files[0]);
+					fr.onload = loadHandler;
+				};
+
+				function loadHandler(event) {
+					var csv = event.target.result;
+					processData(csv);
+				}
+				function processData(csv) {
+					var allTextLines = csv.split(/\r\n|\n/);
+					var lines = [];
+					var details = [];
+					//To make sure the user didn't choose more than the file contains
+					if (N_SAMPLES > allTextLines.length - 2){
+						N_SAMPLES = allTextLines.length - 2;
+					}
+					for (var i = 1; i < N_SAMPLES + 1; i++) {
+						var row = allTextLines[i].split(',');
+						if (mode == 'image'){
+							details.push(row.map(function (item) {
+								return parseFloat(item);
+							}));
+						}
+						else{
+							details.push(row);
+						}
+					}
+					SAMPLE_DETAILS = details;
+					_details(SAMPLE_DETAILS);
+				}
+			}
         }
     }
 
@@ -471,6 +539,7 @@
             N_SAMPLES = parseInt($('#param-nsamples').val());
             lowdim = newdim;
 			shape = threeDModel ? shapelist3d.options[shapelist3d.selectedIndex].value : shapelist2d.options[shapelist2d.selectedIndex].value;
+			mode = modeSelected.options[modeSelected.selectedIndex].value;
 			if(threeDModel){
 				worker = new Worker('js/worker3d.js');
 			}
@@ -533,13 +602,41 @@
 
     function showTooltip() {
         var divElement = $("#tooltip");
-
+		var row = hoveredObj.userData.tooltipText;
+		if ( mode == 'none'){
+			divElement.text(SAMPLE_LABELS[row]);
+		}else if (modefileuploaded){
+			if ( mode == 'image'){
+				$("#tooltip > img").remove();
+					// create an offscreen canvas
+				var canvas = document.createElement("canvas");
+				var ctx = canvas.getContext("2d");
+				// size the canvas to your desired image
+				canvas.width = 28;
+				canvas.height = 28;
+				var imgData = ctx.createImageData(28, 28);
+				  for (var i = 0; i < imgData.data.length; i+=4) {
+					imgData.data[i+0] = 255;
+					imgData.data[i+1] = 255;
+					imgData.data[i+2] = 255;
+					imgData.data[i+3] = 255 * SAMPLE_DETAILS[row][i/4];
+				}
+				// put the modified pixels back on the canvas
+				ctx.putImageData(imgData, 0, 0);
+				// create a new img object
+				var image = new Image();
+				// set the img.src to the canvas data url
+				image.src = canvas.toDataURL();
+				divElement.append(image);
+			} else{
+				divElement.text(SAMPLE_DETAILS[row]);
+			}
+		}		
         if (divElement && latestMouseProjection) {
             divElement.css({
                 display: "block",
                 opacity: 0.0
             });
-
             var canvasHalfWidth = renderer.domElement.offsetWidth / 2;
             var canvasHalfHeight = renderer.domElement.offsetHeight / 2;
 
@@ -554,8 +651,7 @@
                 left: `${tooltipPosition.x - tootipWidth / 2}px`,
                 top: `${tooltipPosition.y - tootipHeight - 5}px`
             });
-            divElement.text(hoveredObj.userData.tooltipText);
-
+           // divElement.text(hoveredObj.userData.tooltipText);
             setTimeout(function () {
                 divElement.css({
                     opacity: 1.0
