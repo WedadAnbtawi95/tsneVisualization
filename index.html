@@ -613,15 +613,18 @@
 				var canvas = document.createElement("canvas");
 				var ctx = canvas.getContext("2d");
 				// size the canvas to your desired image
-				canvas.width = 28;
-				canvas.height = 28;
-				var imgData = ctx.createImageData(28, 28);
+				canvas.width = 64;
+				canvas.height = 64;
+				var imgData = ctx.createImageData(64, 64);
+				var j = 0;
 				  for (var i = 0; i < imgData.data.length; i+=4) {
-					imgData.data[i+0] = 255;
-					imgData.data[i+1] = 255;
-					imgData.data[i+2] = 255;
-					imgData.data[i+3] = 255 * SAMPLE_DETAILS[row][i/4];
+					imgData.data[i+0] = SAMPLE_DETAILS[row-1][j]*255;
+					imgData.data[i+1] = SAMPLE_DETAILS[row-1][j+1]*255;
+					imgData.data[i+2] = SAMPLE_DETAILS[row-1][j+2]*255;
+					imgData.data[i+3] = 255;
+					j +=3;
 				}
+				console.log(j-3);
 				// put the modified pixels back on the canvas
 				ctx.putImageData(imgData, 0, 0);
 				// create a new img object
@@ -794,13 +797,14 @@
                 text-align: center;
                 padding: 5px 12px;
                 font-family: monospace;
-                background: #a0c020;
+                background: black;
                 display: none;
                 opacity: 0;
                 border: 1px solid black;
                 box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
                 transition: opacity 0.25s linear;
                 border-radius: 3px;
+				color: white;
             }
 
         </style>
