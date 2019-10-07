@@ -458,6 +458,7 @@
 							}));
 						}
 						else{
+							row = row.filter(function () { return true });
 							details.push(row);
 						}
 					}
@@ -629,7 +630,7 @@
 				image.src = canvas.toDataURL();
 				divElement.append(image);
 			} else{
-				divElement.text(SAMPLE_DETAILS[row]);
+				divElement.text(SAMPLE_LABELS[row]": "+SAMPLE_DETAILS[row-1]);
 			}
 		}		
         if (divElement && latestMouseProjection) {
