@@ -17,11 +17,8 @@
 </head>
 <body onload="init()">
 <h1 class="l-middle">Interactive t-SNE</h1>
+<p>(<a style="color:blue" href="#guide"><u>User Manual</u></a>)</p>
 <div class="container">
-    <p style="text-align: left;"> You can upload your own data as csv file with the first column as is label and the
-        rest of the columns as features. The label will be used as the color of the datapoint. You can change the view
-        using the mouse or using the keys (x,y,z).</p>
-
     <div class="panel">
         <div id="control-panel" data-sr="enter left over 8s">
             <div class="param">
@@ -111,6 +108,19 @@
         </div>
         <div id="webgl-output"></div>
     </div>
+	<div id='guide' style="text-align: left;">
+		<h2> <u>How to use the platform</u></h2>
+		<h3> File Upload </h2>
+	    <p> You can upload your own data as csv file with the first column as is label and the rest of the columns as features. The label will be used as the color of the datapoint. The csv file is expected to have a header.</p>
+		<h3> Camera View </h3>
+		<p>You can change the view using the mouse or using the keys (x,y,z).</p>
+		<h3>Explanation Modes </h3>
+		<p> For the modes, you can choose the type of data that you want to show as tooltip. The types are text, images, and features explanation. For the images, you can upload a csv file with rgb pixels in range [0,1].
+		For text, you can upload csv file with words. For the features explanation, a csv file of words, each word is followed by its probability.</p>
+		<p> example of image file row is 0.1,1, 0, where this is for one pixel and it's expected that each row will have many pixels. For the features, example is go, 0.1, school, 0.7, where each world is followed by a probability. </p>
+		<h3> Colors </h3>
+		If you want to choose the colors of each label, you can select the color options but make sure that the number of selected colors is same as the number of labels in your data </p>
+	</div>
 </div>
 
 <!----------- SCRIPTS ------------>
@@ -633,7 +643,11 @@
 				image.src = canvas.toDataURL();
 				divElement.append(image);
 			} else{
-				divElement.text(SAMPLE_LABELS[row]+": "+SAMPLE_DETAILS[row-1]);
+				var text = ""+SAMPLE_DETAILS[row-1];
+				while(text.endsWith(';')){
+					text = text.slice(0,-1);
+				}
+				divElement.text(SAMPLE_LABELS[row]+": "+text);
 			}
 		}		
         if (divElement && latestMouseProjection) {

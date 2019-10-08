@@ -30,7 +30,7 @@ a:hover {
   flex: 1;
   padding: 10px;
   border-style: groove;
-  height: 1000px;
+  height: 800px;
 }
 
 #control-panel {
@@ -89,6 +89,13 @@ a:hover {
   overflow:hidden;
   background:#cccccc;
   border:1px solid #cccccc;
+}
+#selectMode{
+  width:140px;
+  height:40px;
+  border:0px;
+  outline:none;
+  text-align-last:center;
 }
 #selectShape3d{
   width:140px;
