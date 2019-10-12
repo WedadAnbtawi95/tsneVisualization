@@ -33,6 +33,7 @@
 						  <option value='none'>None</option>
 						  <option value='text'>Text</option>
 						  <option value='image'>Image</option>
+						  <option value='feature'>Feature</option>
 						</select>
 					</div>
 				<output></output>
@@ -614,11 +615,13 @@
     function showTooltip() {
         var divElement = $("#tooltip");
 		var row = hoveredObj.userData.tooltipText;
+		$("#tooltip").css("background-color","black");
 		if ( mode == 'none'){
 			divElement.text(SAMPLE_LABELS[row]);
 		}else if (modefileuploaded){
 			if ( mode == 'image'){
-				$("#tooltip > img").remove();
+				//$("#tooltip > img").remove();
+				$("#tooltip").empty();
 					// create an offscreen canvas
 				var canvas = document.createElement("canvas");
 				var ctx = canvas.getContext("2d");
@@ -644,10 +647,31 @@
 				divElement.append(image);
 			} else{
 				var text = ""+SAMPLE_DETAILS[row-1];
-				while(text.endsWith(';')){
-					text = text.slice(0,-1);
+				if(mode =='text'){
+					while((text.endsWith(';'))||(text.endsWith(','))){
+						text = text.slice(0,-1);
+					}
+					divElement.text(SAMPLE_LABELS[row]+": "+text);
+				}else{
+					$("#tooltip > table").remove();
+					var features = text.split(';');
+					if (features.length < 2){
+						features = text.split(',');
+					}
+					var cellcolor;
+					var table = '<table width="320" border="1"><tr style="color:black"><th width="118"> Feature </th><th width="186"> Value </th></tr>';
+					for (i = 0; i < 11; i+=2) {
+						if (Math.sign(parseFloat(features[i+1])) === -1){
+							cellcolor="#00BFFF";
+						}else{
+							cellcolor="#FF0000";
+						}
+						table = table + '<tr bgcolor='+cellcolor+'><td width="118">' + features[i] + '</td><td width="186">' + features[i+1] + '</td></tr>';
+					}
+					table = table + '</table>';
+					$("#tooltip").css("background-color","white");
+					divElement.append(table);
 				}
-				divElement.text(SAMPLE_LABELS[row]+": "+text);
 			}
 		}		
         if (divElement && latestMouseProjection) {
