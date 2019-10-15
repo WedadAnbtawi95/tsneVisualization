@@ -269,7 +269,7 @@
         light.position.set(1, 1, 1).normalize();
         scene.add(light);
         embeddingSpace = document.getElementById('webgl-output');
-        camera = new THREE.PerspectiveCamera(70, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
+        camera = new THREE.PerspectiveCamera(70, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 100);
         camera.position.set(0, 0, 5);
 	camera.lookAt(0,0,0);
         raycaster = new THREE.Raycaster();
@@ -574,7 +574,8 @@
                         break;
                     case 'DONE':
                         drawUpdate(msg.data);
-						document.getElementById("percentage").innerHTML = 'Done!';
+			document.getElementById("percentage").innerHTML = 'Done!';
+		        worker.terminate();
                         break;
                     default:
                 }
