@@ -277,7 +277,6 @@
         mouse = new THREE.Vector2();
         renderer = new THREE.WebGLRenderer();
         renderer.setClearColor(0xffffff, 1);
-        renderer.setSize(embeddingSpace.clientWidth, embeddingSpace.clientWidth);
         orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
         embeddingSpace.appendChild(renderer.domElement);
         renderer.render(scene, camera);
