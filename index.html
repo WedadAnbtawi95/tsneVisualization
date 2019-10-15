@@ -333,7 +333,7 @@
 		function _details(SAMPLE_DETAILS) {
 			SAMPLE_DETAILS = SAMPLE_DETAILS;
 		}	
-        function _draw(SAMPLE_DATA, SAMPLE_LABELS) {
+        function _draw(SAMPLE_DATA, SAMPLE_LABELS, num) {
             var sampleData = SAMPLE_DATA;
             var sampleLabels = SAMPLE_LABELS;
             var labels = sampleLabels.unique();
@@ -401,7 +401,7 @@
         }
 
         if (SAMPLE_DATA) {
-            _draw(SAMPLE_DATA, SAMPLE_LABELS);
+            _draw(SAMPLE_DATA, SAMPLE_LABELS, N_SAMPLES);
         } else {
             read();
 
@@ -437,7 +437,7 @@
                 }
                 SAMPLE_DATA = sampledata;
                 SAMPLE_LABELS = labels;
-                _draw(SAMPLE_DATA, SAMPLE_LABELS);
+                _draw(SAMPLE_DATA, SAMPLE_LABELS, N_SAMPLES);
             }
 			if(modefileuploaded){
 				readmodeFile();
@@ -639,7 +639,6 @@
 					imgData.data[i+3] = 255;
 					j +=3;
 				}
-				console.log(j-3);
 				// put the modified pixels back on the canvas
 				ctx.putImageData(imgData, 0, 0);
 				// create a new img object
