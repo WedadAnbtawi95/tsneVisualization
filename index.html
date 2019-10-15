@@ -269,8 +269,8 @@
         scene.add(light);
         embeddingSpace = document.getElementById('webgl-output');
         camera = new THREE.PerspectiveCamera(70, embeddingSpace.clientWidth / embeddingSpace.clientWidth, 1, 10);
-        camera.position.set(0, 0, 4);
-		camera.lookAt(0,0,0);
+        camera.position.set(0, 0, 5);
+	camera.lookAt(0,0,0);
         raycaster = new THREE.Raycaster();
         // initialize object to perform world/screen calculations
         mouse = new THREE.Vector2();
@@ -287,11 +287,11 @@
         function onDocumentKeyDown(event) {
             var keyCode = event.which;
             if (keyCode == 88) {
-                camera.position.set(2, 0, 0);
+                camera.position.set(5, 0, 0);
             } else if (keyCode == 89) {
-                camera.position.set(0, 2, 0);
+                camera.position.set(0, 5, 0);
             } else if (keyCode == 90) {
-                camera.position.set(0, 0, 2);
+                camera.position.set(0, 0, 5);
             } else if (keyCode == 79) {
                 camera.position.set(1, 1, 1);
             }
