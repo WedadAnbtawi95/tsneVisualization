@@ -133,6 +133,7 @@
     'use strict';
     var N_SAMPLES;
 	var shape;
+	var t0;
 	var mode;
     var worker;
     var nIter;
@@ -385,6 +386,7 @@
                 stars.push(mesh);
                 scene.add(mesh);
             }
+			t0 = performance.now();
 			worker.postMessage({
 				type: 'INPUT_DATA',
 				data: sampleData
@@ -573,6 +575,8 @@
                         drawUpdate(msg.data);
                         break;
                     case 'DONE':
+						var t1 = performance.now();
+						console.log("t-SNE took " + (t1 - t0) + " milliseconds.");
                         drawUpdate(msg.data);
 			document.getElementById("percentage").innerHTML = 'Done!';
 		        worker.terminate();
